@@ -40,14 +40,25 @@ def doc_tool(state: State) -> Literal["rewrite", "generate"]:
         state (State): The current state of the graph.
 
     Returns:
-        The next node: "generate" if score is "yes", otherwise "rewrite".
+        The next node: "generate" if score is "yes" or retry limit reached, otherwise "rewrite".
     """
-    score = state["binary_score"]
-    print(f"[doc_tool] Routing based on score: {score}")
+    score = state.get("binary_score")
+    retry_count = state.get("retry_count") or 0
+    max_retries = config.retry_max()
+
+    print(f"[doc_tool] Routing based on score={score}, retry_count={retry_count}, max_retries={max_retries}")
+
     if score == "yes":
+        # Good relevance -> proceed to generate
         return "generate"
-    else:
-        return "rewrite"
+
+    if retry_count >= max_retries:
+        # Poor relevance but retries exhausted -> avoid loop and generate anyway
+        print("[doc_tool] Max retries reached; generating with current context.")
+        return "generate"
+
+    # Poor relevance and retry budget remains -> rewrite and retry retrieval
+    return "rewrite"
 
 
 def verify_answer(state: State) -> Literal["__end__", "generate"]:

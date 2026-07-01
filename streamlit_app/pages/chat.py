@@ -100,4 +100,24 @@ if user_input:
 
 # Display chat history
 for role, text in st.session_state.chat_history:
-    st.chat_message(role).write(text)
+    if role == "assistant" and isinstance(text, str) and "Sources:" in text:
+        # Split the main answer and the sources section
+        parts = text.split("\n\nSources:", 1)
+        main = parts[0]
+        sources = parts[1].strip() if len(parts) > 1 else ""
+
+        st.chat_message(role).write(main)
+        if sources:
+            # Render sources as a clean list under the assistant message
+            with st.chat_message(role):
+                st.markdown("**Sources:**")
+                for line in sources.splitlines():
+                    line = line.strip()
+                    if not line:
+                        continue
+                    # remove leading bullets if present
+                    if line.startswith("•"):
+                        line = line.lstrip("•").strip()
+                    st.markdown(f"- {line}")
+    else:
+        st.chat_message(role).write(text)

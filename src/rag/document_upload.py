@@ -82,7 +82,27 @@ def documents(description: str, file: UploadFile = File(...)):
     )
     chunks = splitter.split_documents(docs)
 
-    return retriever_chain(chunks)
+    # Enrich chunk metadata with filename, page number and chunk id
+    enriched_chunks = []
+    for idx, chunk in enumerate(chunks, start=1):
+        meta = dict(getattr(chunk, "metadata", {}) or {})
+        meta.setdefault("filename", filename)
+
+        # try to inherit page number from the original document if available
+        # original loader documents often include 'page' or 'page_number'
+        source_page = None
+        if getattr(chunk, "metadata", None):
+            source_page = chunk.metadata.get("page") or chunk.metadata.get("page_number")
+        meta["page"] = source_page
+        meta["chunk_id"] = idx
+        # retrieval metadata placeholders
+        meta.setdefault("retrieval_method", None)
+        meta.setdefault("retrieval_score", None)
+
+        chunk.metadata = meta
+        enriched_chunks.append(chunk)
+
+    return retriever_chain(enriched_chunks)
 
 
 

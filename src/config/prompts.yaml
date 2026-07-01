@@ -67,3 +67,16 @@ prompts:
     Is every part of the final answer supported by the retrieved context? 
     If yes, faithful=true. If not, faithful=false.
     Provide a short explanation.
+
+reranker:
+  enabled: true
+  model: "BAAI/bge-reranker-base"
+  retrieval_top_k: 20
+  final_top_k: 5
+  use_reranker: true
+
+retry:
+  max_retries: 2
+
+adaptive:
+  max_retries: 2
