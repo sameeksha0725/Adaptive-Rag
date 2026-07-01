@@ -126,9 +126,21 @@ def query_backend(query: str, session_id: str) -> str:
     )
 
     if response.status_code == 200:
-        return response.json()["result"]["content"]
+        payload = response.json().get("result")
+        # backward compatible handling: `result` may be a dict with content
+        if isinstance(payload, dict):
+            return {
+                "content": payload.get("content"),
+                "confidence": payload.get("confidence"),
+                "sources": payload.get("sources"),
+            }
+        # older format: assume it's a message-like object
+        try:
+            return {"content": payload["content"], "confidence": None, "sources": None}
+        except Exception:
+            return {"content": str(payload), "confidence": None, "sources": None}
     else:
-        return f"Error: {response.status_code} - {response.text}"
+        return {"content": f"Error: {response.status_code} - {response.text}", "confidence": None, "sources": None}
 
 
 def document_upload_rag(file, description: str) -> bool:

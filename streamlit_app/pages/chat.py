@@ -95,29 +95,29 @@ user_input = st.chat_input("Ask a question...")
 if user_input:
     st.session_state.chat_history.append(("user", user_input))
     response = query_backend(user_input, st.session_state["jwt_token"])
+    # response is a dict: {content, confidence, sources}
     st.session_state.chat_history.append(("assistant", response))
     st.rerun()  # Rerun script to display updated messages
 
 # Display chat history
 for role, text in st.session_state.chat_history:
-    if role == "assistant" and isinstance(text, str) and "Sources:" in text:
-        # Split the main answer and the sources section
-        parts = text.split("\n\nSources:", 1)
-        main = parts[0]
-        sources = parts[1].strip() if len(parts) > 1 else ""
+    if role == "assistant":
+        # text is expected to be a dict
+        if isinstance(text, dict):
+            content = text.get("content")
+            confidence = text.get("confidence")
+            sources = text.get("sources") or []
 
-        st.chat_message(role).write(main)
-        if sources:
-            # Render sources as a clean list under the assistant message
-            with st.chat_message(role):
-                st.markdown("**Sources:**")
-                for line in sources.splitlines():
-                    line = line.strip()
-                    if not line:
-                        continue
-                    # remove leading bullets if present
-                    if line.startswith("•"):
-                        line = line.lstrip("•").strip()
-                    st.markdown(f"- {line}")
+            st.chat_message(role).write(content)
+            if confidence is not None:
+                with st.chat_message(role):
+                    st.markdown(f"**Confidence:** {confidence}%")
+            if sources:
+                with st.chat_message(role):
+                    st.markdown("**Sources:**")
+                    for s in sources:
+                        st.markdown(f"- {s}")
+        else:
+            st.chat_message(role).write(text)
     else:
         st.chat_message(role).write(text)

@@ -34,11 +34,14 @@ async def rag_query(req: QueryRequest):
         "messages": messages
     })
     output_text = result["messages"][-1].content
+    confidence = result.get("confidence")
+    sources = result.get("sources") or []
 
-    # Save assistant message
+    # Save assistant message (store only content in chat history)
     await chat_history.add_message(AIMessage(content=output_text))
 
-    return {"result": result["messages"][-1]}
+    # Return structured result while preserving the top-level `result` key
+    return {"result": {"content": output_text, "confidence": confidence, "sources": sources}}
 
 
 @router.post("/rag/documents/upload")

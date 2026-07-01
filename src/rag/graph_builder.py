@@ -173,8 +173,12 @@ def hybrid_fusion(state: State):
         if text not in meta_by_text:
             meta_by_text[text] = dict(item.get("meta", {}) or {})
 
-    for text, _score in ranked_texts[:top_k]:
-        hybrid_candidates.append({"text": text, "meta": meta_by_text.get(text, {})})
+    for text, score in ranked_texts[:top_k]:
+        meta = meta_by_text.get(text, {})
+        # attach the RRF aggregated score so downstream components can use it
+        meta = dict(meta)
+        meta["rrf_score"] = float(score)
+        hybrid_candidates.append({"text": text, "meta": meta})
 
     return {"hybrid_candidates": hybrid_candidates}
 
@@ -208,7 +212,13 @@ def reranker_node(state: State):
                 seen.add(label)
                 sources.append(label)
 
-    return {"messages": [AIMessage(content=fused_context)], "sources": sources}
+    # compute confidence using the modular scorer
+    from src.rag.confidence import ConfidenceScorer
+
+    scorer = ConfidenceScorer()
+    confidence = scorer.score(reranked)
+
+    return {"messages": [AIMessage(content=fused_context)], "sources": sources, "confidence": confidence}
 
 
 def grade(state: State):
@@ -285,15 +295,10 @@ def generate(state: State):
     generate_chain = generate_prompt | llm
     result = generate_chain.invoke({"context": context})
 
-    # Append Sources section if provided in state
-    sources = state.get("sources") or []
-    if sources:
-        sources_text = "\n\nSources:\n" + "\n".join(f"• {s}" for s in sources)
-        final_content = f"{result.content}{sources_text}"
-    else:
-        final_content = result.content
-
-    return {"messages": [{"role": "assistant", "content": final_content}]}
+    # Keep sources and confidence in the outer state; message remains the
+    # generated content only. The API and frontend will render sources
+    # and confidence separately for better structure.
+    return {"messages": [{"role": "assistant", "content": result.content}], "sources": state.get("sources"), "confidence": state.get("confidence")}
 
 
 def web_search(state: State):
