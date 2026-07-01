@@ -107,6 +107,7 @@ for role, text in st.session_state.chat_history:
             content = text.get("content")
             confidence = text.get("confidence")
             sources = text.get("sources") or []
+            retrieval_analytics = text.get("retrieval_analytics") or []
 
             st.chat_message(role).write(content)
             if confidence is not None:
@@ -117,6 +118,62 @@ for role, text in st.session_state.chat_history:
                     st.markdown("**Sources:**")
                     for s in sources:
                         st.markdown(f"- {s}")
+            # Retrieval Analytics panel in the sidebar (hidden by default)
+            with st.sidebar.expander("Retrieval Analytics", expanded=False):
+                st.markdown("**System Info**")
+                try:
+                    from src.config.settings import RERANKER_MODEL, RETRIEVAL_TOP_K, FINAL_TOP_K, USE_RERANKER
+                    from src.llms.ollama import MODEL_NAME as LLM_MODEL
+                    from src.llms.embeddings import embeddings as EMB_PROVIDER
+                    emb_name = getattr(EMB_PROVIDER, "__class__", type(EMB_PROVIDER)).__name__
+                except Exception:
+                    RERANKER_MODEL = None
+                    RETRIEVAL_TOP_K = None
+                    FINAL_TOP_K = None
+                    USE_RERANKER = None
+                    LLM_MODEL = None
+                    emb_name = None
+
+                st.markdown(f"- Hybrid Search: **Enabled**")
+                st.markdown(f"- Embedding Model: **{emb_name or 'unknown'}**")
+                st.markdown(f"- LLM Model: **{LLM_MODEL or 'unknown'}**")
+                st.markdown(f"- Reranker Model: **{RERANKER_MODEL or 'none'}**")
+                st.markdown(f"- Top-K Retrieved: **{RETRIEVAL_TOP_K or 'n/a'}**")
+                st.markdown(f"- Final Documents Passed to LLM: **{FINAL_TOP_K or 'n/a'}**")
+
+                st.markdown("---")
+                st.markdown("**Retrieved Chunks (post-rerank)**")
+                if not retrieval_analytics:
+                    st.info("No retrieval analytics available for this response.")
+                else:
+                    rows = []
+                    for rank, cand in enumerate(retrieval_analytics, start=1):
+                        meta = cand.get("meta", {}) or {}
+                        filename = meta.get("filename") or meta.get("source") or "unknown"
+                        page = meta.get("page")
+                        chunk_id = meta.get("chunk_id")
+                        method = meta.get("retrieval_method")
+                        retrieval_score = meta.get("retrieval_score")
+                        bm25_score = retrieval_score if (method and method.upper().startswith("BM")) else None
+                        semantic_score = retrieval_score if (method and not method.upper().startswith("BM")) else None
+                        rrf_score = meta.get("rrf_score")
+                        reranker_score = meta.get("reranker_score")
+                        rows.append({
+                            "final_ranking": rank,
+                            "filename": filename,
+                            "page": page if page is not None else "-",
+                            "chunk_id": chunk_id if chunk_id is not None else "-",
+                            "retrieval_method": method or "-",
+                            "semantic_similarity": semantic_score if semantic_score is not None else "-",
+                            "bm25_score": bm25_score if bm25_score is not None else "-",
+                            "rrf_score": rrf_score if rrf_score is not None else "-",
+                            "crossencoder_score": reranker_score if reranker_score is not None else "-",
+                        })
+
+                    import pandas as pd
+
+                    df = pd.DataFrame(rows)
+                    st.dataframe(df)
         else:
             st.chat_message(role).write(text)
     else:

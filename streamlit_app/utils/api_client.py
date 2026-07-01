@@ -133,14 +133,15 @@ def query_backend(query: str, session_id: str) -> str:
                 "content": payload.get("content"),
                 "confidence": payload.get("confidence"),
                 "sources": payload.get("sources"),
+                "retrieval_analytics": payload.get("retrieval_analytics"),
             }
         # older format: assume it's a message-like object
         try:
-            return {"content": payload["content"], "confidence": None, "sources": None}
+            return {"content": payload["content"], "confidence": None, "sources": None, "retrieval_analytics": None}
         except Exception:
             return {"content": str(payload), "confidence": None, "sources": None}
     else:
-        return {"content": f"Error: {response.status_code} - {response.text}", "confidence": None, "sources": None}
+        return {"content": f"Error: {response.status_code} - {response.text}", "confidence": None, "sources": None, "retrieval_analytics": None}
 
 
 def document_upload_rag(file, description: str) -> bool:

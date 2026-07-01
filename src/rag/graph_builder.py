@@ -218,7 +218,13 @@ def reranker_node(state: State):
     scorer = ConfidenceScorer()
     confidence = scorer.score(reranked)
 
-    return {"messages": [AIMessage(content=fused_context)], "sources": sources, "confidence": confidence}
+    # include the reranked candidates list as retrieval analytics for UI/API
+    return {
+        "messages": [AIMessage(content=fused_context)],
+        "sources": sources,
+        "confidence": confidence,
+        "retrieval_analytics": reranked,
+    }
 
 
 def grade(state: State):
@@ -298,7 +304,12 @@ def generate(state: State):
     # Keep sources and confidence in the outer state; message remains the
     # generated content only. The API and frontend will render sources
     # and confidence separately for better structure.
-    return {"messages": [{"role": "assistant", "content": result.content}], "sources": state.get("sources"), "confidence": state.get("confidence")}
+    return {
+        "messages": [{"role": "assistant", "content": result.content}],
+        "sources": state.get("sources"),
+        "confidence": state.get("confidence"),
+        "retrieval_analytics": state.get("retrieval_analytics"),
+    }
 
 
 def web_search(state: State):
