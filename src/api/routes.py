@@ -2,8 +2,11 @@
 API routes for RAG operations.
 """
 
-from fastapi import APIRouter, UploadFile, File, Header
-from langchain_core.messages import HumanMessage, AIMessage
+from typing import Dict
+from uuid import uuid4
+
+from fastapi import APIRouter, Body, File, Header, UploadFile
+from langchain_core.messages import AIMessage, HumanMessage
 
 from src.memory.chat_history_mongo import ChatHistory
 from src.models.query_request import QueryRequest
@@ -11,6 +14,41 @@ from src.rag.document_upload import documents
 from src.rag.graph_builder import builder
 
 router = APIRouter()
+
+USER_STORE: Dict[str, dict] = {}
+
+
+@router.post("/init")
+async def init_api():
+    """Return a lightweight API token for the Streamlit UI."""
+    return {"api_token": "adaptive-rag-demo-token"}
+
+
+@router.post("/create_user")
+async def create_user(payload: dict = Body(...), api_token: str = Header(default=None, alias="X-API-TOKEN")):
+    """Create a simple in-memory user for local/demo use."""
+    username = payload.get("username")
+    password = payload.get("password")
+
+    if not username or not password:
+        return {"status": "error", "message": "Username and password are required"}
+
+    USER_STORE[username] = {"username": username, "password": password}
+    return {"status": "ok", "message": "User created"}
+
+
+@router.post("/login")
+async def login_user(payload: dict = Body(...), api_token: str = Header(default=None, alias="X-API-TOKEN")):
+    """Authenticate a user and return a simple JWT-style token."""
+    username = payload.get("username")
+    password = payload.get("password")
+
+    user = USER_STORE.get(username)
+    if not user or user.get("password") != password:
+        return {"status": "error", "message": "Invalid username or password"}
+
+    jwt_token = f"jwt-{username}-{uuid4().hex}"
+    return {"jwt": jwt_token}
 
 
 @router.post("/rag/query")

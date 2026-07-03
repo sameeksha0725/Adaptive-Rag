@@ -10,8 +10,8 @@ import requests
 logger = logging.getLogger(__name__)
 
 # Backend service URLs
-RUST_BASE_URL = "http://localhost:8080/api"
-PYTHON_BASE_URL = "http://127.0.0.1:8000"
+RUST_BASE_URL = os.getenv("ADAPTIVE_RAG_API_BASE_URL", "http://127.0.0.1:8001/api")
+PYTHON_BASE_URL = os.getenv("ADAPTIVE_RAG_PYTHON_BASE_URL", "http://127.0.0.1:8001")
 
 
 def create_user(username: str, password: str, api_token: str) -> bool:

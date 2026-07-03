@@ -1,12 +1,4 @@
-"""
-Ollama LLM adapter to replace ChatOpenAI.
-
-This module exposes `llm` to match the previous `openai.llm` variable so
-other modules can continue importing `from src.llms.openai import llm`.
-
-It prefers LangChain's `Ollama` LLM if available, and falls back to the
-`ollama` python client. The model name is taken from `src.core.config.settings`.
-"""
+"""Ollama-backed LLM adapter used by the application workflow."""
 import os
 from dotenv import load_dotenv
 
@@ -18,8 +10,7 @@ MODEL_NAME = getattr(settings, "OLLAMA_MODEL", os.getenv("OLLAMA_MODEL", "qwen3:
 
 
 try:
-    # Prefer LangChain's Ollama wrapper if available
-    from langchain.llms import Ollama as LangchainOllama
+    from langchain_community.llms import Ollama as LangchainOllama
 
     llm = LangchainOllama(model=MODEL_NAME)
 except Exception:

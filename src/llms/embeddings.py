@@ -1,26 +1,23 @@
-"""
-Embeddings shim: tries to use OpenAIEmbeddings if available, otherwise
-provides a clear runtime error explaining embeddings need configuration.
+"""Embedding provider wrapper using HuggingFace embeddings."""
 
-This keeps the rest of the codebase unchanged while removing a hard
-dependency on OpenAI at import time.
-"""
+import os
 from typing import List
 
 try:
-    from langchain_openai import OpenAIEmbeddings
+    from langchain_community.embeddings import HuggingFaceEmbeddings
 
-    embeddings = OpenAIEmbeddings()
+    embedding_model = os.getenv("EMBEDDING_MODEL", "BAAI/bge-small-en-v1.5")
+    embeddings = HuggingFaceEmbeddings(model_name=embedding_model)
 except Exception:
     class _EmbeddingsUnavailable:
         def embed_documents(self, documents: List[str]):
             raise RuntimeError(
-                "OpenAI embeddings are not available. Install and configure an embeddings provider or set OPENAI_API_KEY."
+                "Embeddings are not available. Install the required HuggingFace dependencies or configure EMBEDDING_MODEL."
             )
 
         def embed_query(self, query: str):
             raise RuntimeError(
-                "OpenAI embeddings are not available. Install and configure an embeddings provider or set OPENAI_API_KEY."
+                "Embeddings are not available. Install the required HuggingFace dependencies or configure EMBEDDING_MODEL."
             )
 
     embeddings = _EmbeddingsUnavailable()

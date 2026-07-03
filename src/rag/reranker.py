@@ -1,11 +1,4 @@
-"""
-Cross-encoder reranking helper for the hybrid retrieval pipeline.
-
-This module is intentionally separate so the reranking logic remains modular
-and can be configured independently from the retriever interface.
-"""
-
-from sentence_transformers import CrossEncoder
+"""Cross-encoder reranking helper for the hybrid retrieval pipeline."""
 
 from src.config.settings import Config
 
@@ -17,12 +10,31 @@ class CrossEncoderReranker:
         self.pool_size = config.reranker_pool_size()
         self.output_size = config.reranker_output_size()
         self.model = None
+        self._load_attempted = False
 
-        if self.enabled:
+    def _load_model(self) -> None:
+        """Load the reranker model lazily on first use."""
+        if self._load_attempted or not self.enabled:
+            return
+
+        self._load_attempted = True
+        try:
+            from sentence_transformers import CrossEncoder
+
             self.model = CrossEncoder(self.model_name)
+        except Exception as exc:  # pragma: no cover - environment dependent
+            self.enabled = False
+            self.model = None
+            print(f"[reranker] Unable to initialize reranker model {self.model_name}: {exc}")
 
     def rerank_documents(self, query: str, candidates: list[dict]) -> list[dict]:
         """Rerank candidate documents and return the top output_size results."""
+        if not self.enabled:
+            return candidates[: self.output_size]
+
+        if self.model is None:
+            self._load_model()
+
         if not self.enabled or self.model is None:
             return candidates[: self.output_size]
 

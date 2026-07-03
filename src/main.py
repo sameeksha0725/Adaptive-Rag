@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from src.api.routes import router
 
 app = FastAPI(title="Adaptive RAG API")
-app.include_router(router)
+app.include_router(router, prefix="/api")
 app.state.description_ = ""
 
 

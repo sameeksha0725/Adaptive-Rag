@@ -75,6 +75,9 @@ reranker:
   final_top_k: 5
   use_reranker: true
 
+retriever:
+  rrf_k: 60
+
 retry:
   max_retries: 2
 

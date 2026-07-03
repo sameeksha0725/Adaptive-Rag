@@ -307,7 +307,7 @@ from functools import lru_cache
 @lru_cache(maxsize=128)
 def get_embedding_model():
     """Get embedding model (cached)."""
-    return OpenAIEmbeddings()
+    return HuggingFaceEmbeddings(model_name="BAAI/bge-small-en-v1.5")
 ```
 
 ## Code Review Checklist

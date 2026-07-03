@@ -27,7 +27,7 @@ def _build_hybrid_retriever(documents: list[Document]):
         semantic_retriever=semantic_retriever,
         keyword_retriever=keyword_retriever,
         k=config.final_top_k(),
-        rrf_k=60,
+        rrf_k=config.rrf_k(),
         reranker=reranker,
         retrieval_top_k=config.retrieval_top_k(),
         final_top_k=config.final_top_k(),

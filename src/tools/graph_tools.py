@@ -7,7 +7,7 @@ from typing import Literal
 from langchain_core.prompts import PromptTemplate
 
 from src.config.settings import Config
-from src.llms.openai import llm
+from src.llms.ollama import llm
 from src.models.state import State
 from src.models.verification_result import VerificationResult
 
